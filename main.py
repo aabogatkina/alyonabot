@@ -114,3 +114,7 @@ def kb_hide(m):
 @bot.message_handler(func=lambda m: m.text == "Показать клавиатуру")
 def kb_show(m):
     show_k(m)
+
+if __name__ == "__main__":
+    bot.infinity_polling(skip_pending=True)
+
