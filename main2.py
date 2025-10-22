@@ -3,7 +3,12 @@ from dotenv import load_dotenv
 import telebot
 import time
 from datetime import datetime, timedelta
-from db import init_db, add_note, list_notes, update_note, delete_note, find_notes
+
+from telebot import types
+
+from db import init_db, add_note, list_notes, update_note, delete_note, find_notes, list_models, get_active_model, \
+    set_active_model
+from openrouter_client import chat_once, OpenRouterError
 
 # Загрузка переменных окружения
 load_dotenv()
@@ -37,6 +42,9 @@ def help_cmd(message):
 /note_count - Количество заметок
 /note_export - Экспорт всех заметок в файл
 /note_stats - Статистика активности за неделю
+/models - Показать доступные модели
+/model <id> - Выбрать активную модель
+/ask <вопрос> - Задать вопрос ИИ
 
 📝 Лимит: {MAX_NOTES_PER_USER} заметок на пользователя
 """
@@ -328,6 +336,70 @@ def note_stats(message):
         stats_text += "💪 Хорошая работа! Можно добавить еще немного заметок."
 
     bot.reply_to(message, stats_text)
+
+
+@bot.message_handler(commands=["models"])
+def cmd_models(message: types.Message) -> None:
+    items = list_models()
+    if not items:
+        bot.reply_to(message, "Список моделей пуст")
+        return
+    lines = ["Доступные модели:"]
+    for m in items:
+        star = "*" if m["active"] else " "
+        lines.append(f"{star} {m['id']}. {m['label']} [{m['key']}]")
+    lines.append("\nАктивировать: /model <ID>")
+    bot.reply_to(message, "\n".join(lines))
+
+
+@bot.message_handler(commands=["model"])
+def cmd_model(message: types.Message) -> None:
+    arg = message.text.replace("/model", "", 1).strip()
+    if not arg:
+        active = get_active_model()
+        bot.reply_to(message, f"Текущая активная модель: {active['label']} [{active['key']}]\n(сменить: /model <ID> или /models)")
+        return
+    if not arg.isdigit():
+        bot.reply_to(message, "Использование: /model <ID из /models>")
+        return
+    try:
+        active = set_active_model(int(arg))
+        bot.reply_to(message, f"Активная модель переключена: {active['label']} [{active['key']}]")
+    except ValueError:
+        bot.reply_to(message, "Неизвестный ID модели. Сначала /models")
+
+
+def _build_messages(user_id: int, user_text: str) -> list[dict]:
+    system = (
+        f"Ты отвечаешь кратко и по-существу.\n"
+        "Правила:\n"
+        "1) Технические ответы давай корректно и по пунктам.\n"
+    )
+    return [
+        {"role": "system", "content": system},
+        {"role": "user", "content": user_text},
+    ]
+
+
+@bot.message_handler(commands=["ask"])
+def cmd_ask(message: types.Message) -> None:
+    q = message.text.replace("/ask", "", 1).strip()
+    if not q:
+        bot.reply_to(message, "Использование: /ask <вопрос>")
+        return
+
+    msgs = _build_messages(message.from_user.id, q[:600])
+    model_key = get_active_model()["key"]
+
+    try:
+        text, ms = chat_once(msgs, model=model_key, temperature=0.2, max_tokens=400)
+        out = (text or "").strip()[:4000]          # не переполняем сообщение Telegram
+        bot.reply_to(message, f"{out}\n\n({ms} мс; модель: {model_key})")
+    except OpenRouterError as e:
+        bot.reply_to(message, f"Ошибка: {e}")
+    except Exception:
+        bot.reply_to(message, "Непредвиденная ошибка.")
+
 
 if __name__ == "__main__":
     print("Бот запускается...")
