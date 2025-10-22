@@ -70,7 +70,7 @@ def kb_max(m):
 def on_max_numbers(m):
     nums = parse_ints_from_text(m.text)
     if not nums:
-        bot.reply_to(m, "Я не вижу чисел!!!!!! Пример: 2 3 10")
+        bot.reply_to(m, "Я не вижу чисел. Пример: 2 3 10")
     else:
         bot.reply_to(m, f"Максимум: {max(nums)}")
 
@@ -82,26 +82,26 @@ def kb_min(m):
 def on_min_numbers(m):
     nums = parse_ints_from_text(m.text)
     if not nums:
-        bot.reply_to(m, "Я не вижу чисел!!!!!! Пример: 2 3 10")
+        bot.reply_to(m, "Я не вижу чисел. Пример: 2 3 10")
     else:
         bot.reply_to(m, f"Минимум: {min(nums)}")
 
 @bot.message_handler(func=lambda m: m.text == "Сумма")
 def kb_sum(m):
-    bot.send_message(m.chat.id, "Введи числа через пробел или запятую:")
+    bot.send_message(m.chat.id, "Введите числа через пробел или запятую:")
     bot.register_next_step_handler(m, on_sum_numbers)
 
 def on_sum_numbers(m):
     nums = parse_ints_from_text(m.text)
     if not nums:
-        bot.reply_to(m, "Я не вижу чисел!!!!!! Пример: 2 3 10")
+        bot.reply_to(m, "Я не вижу чисел. Пример: 2 3 10")
     else:
         bot.reply_to(m, f"Сумма: {sum(nums)}")
 
 @bot.message_handler(commands=["hide"])
 def hide_k(m):
     rm = types.ReplyKeyboardRemove()
-    bot.send_message(m.chat.id, "Клавиатура спряталась",reply_markup=rm)
+    bot.send_message(m.chat.id, "Клавиатура спрятана",reply_markup=rm)
 
 @bot.message_handler(commands=["show"])
 def show_k(m):
@@ -144,6 +144,22 @@ def on_confirm(c):
     }
     response_text = responses.get(choice, "Неизвестный выбор")
     bot.send_message(c.message.chat.id, response_text)
+
+def fetch_weather_moscow_open_meteo() -> str:
+    url = "https://api.open-meteo.com/v1/forecast"
+    params = {
+        "latitude": 27.28,
+        "longitude": 153.01,
+        "current": "temperature_2m",
+        "timezone": "Europe/Moscow"
+    }
+    try:
+        r = requests.get(url, params=params, timeout=5)
+        r.raise_for_status()
+        t = r.json()["current"]["temperature_2m"]
+        return f"Австралия, Brisbane: сейчас {round(t)}°C"
+    except Exception:
+        return "Не удалось получить погоду."
 
 if __name__ == "__main__":
     bot.infinity_polling(skip_pending=True)
