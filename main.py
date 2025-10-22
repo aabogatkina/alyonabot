@@ -115,6 +115,36 @@ def kb_hide(m):
 def kb_show(m):
     show_k(m)
 
+@bot.message_handler(commands=['confirm'])
+def confirm_cmd(m):
+    kb = types.InlineKeyboardMarkup()
+    kb.add(
+        types.InlineKeyboardButton("ДАААА", callback_data="confirm:yes"),
+        types.InlineKeyboardButton("НЕЕЕЕТ", callback_data="confirm:no"),
+        types.InlineKeyboardButton("Возможно", callback_data="confirm:maybe"),
+        types.InlineKeyboardButton("Позже", callback_data="confirm:later"),
+        types.InlineKeyboardButton("Нужна информация", callback_data="confirm:info"),
+        types.InlineKeyboardButton("Отмена", callback_data="confirm:cancel")
+    )
+    bot.send_message(m.chat.id, "Подтвердить действие????", reply_markup=kb)
+
+@bot.callback_query_handler(func=lambda c: c.data.startswith("confirm:"))
+def on_confirm(c):
+    choice = c.data.split(":", 1)[1]
+    bot.answer_callback_query(c.id, "Принято!")
+
+    bot.edit_message_reply_markup(c.message.chat.id, c.message.message_id, reply_markup=None)
+    responses = {
+        "yes": "Действие подтверждено! Выполняю...",
+        "no": "Действие отклонено!",
+        "maybe": "Понимаю, нужно подумать... Напишите, когда будете готовы.",
+        "later": "Хорошо, напомнить позже? Используйте команду /confirm когда будете готовы.",
+        "info": "Какую информацию вам предоставить? Напишите ваш вопрос.",
+        "cancel": "Действие отменено пользователем."
+    }
+    response_text = responses.get(choice, "Неизвестный выбор")
+    bot.send_message(c.message.chat.id, response_text)
+
 if __name__ == "__main__":
     bot.infinity_polling(skip_pending=True)
 
