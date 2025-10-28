@@ -35,11 +35,16 @@ def init_db():
     CREATE UNIQUE INDEX IF NOT EXISTS ux_models_single_active ON models(active) WHERE active=1;
 
     INSERT OR IGNORE INTO models(id, key, label, active) VALUES
-        (1, 'deepseek/deepseek-chat-v3.1:free', 'DeepSeek V3.1 (free)', 1),
-        (2, 'deepseek/deepseek-r1:free', 'DeepSeek R1 (free)', 0),
+        (1, 'inception/mercury', 'Inception: Mercury', 1),
+        (2, 'google/gemini-2.5-flash-lite-preview-06-17', 'google/gemini-2.5-flash-lite-preview-06-17', 0),
         (3, 'mistralai/mistral-small-24b-instruct-2501:free', 'Mistral Small 24b (free)', 0),
-        (4, 'meta-llama/llama-3.1-8b-instruct:free', 'Llama 3.1 8B (free)', 0);
-
+        (4, 'meta-llama/llama-3.1-8b-instruct:free', 'Llama 3.1 8B (free)', 0),
+        (5, 'openai/gpt-5-image-mini', 'OpenAI: GPT-5 Image Mini', 0),
+        (6, 'inclusionai/ring-1t', 'inclusionAI: Ring 1T', 0),
+        (7, 'deepseek/deepseek-v3.2-exp', 'DeepSeek: DeepSeek V3.2 Exp', 0),
+        (8, 'baidu/ernie-4.5-300b-a47b', 'Baidu: ERNIE 4.5 300B A47B', 0),
+        (9, 'nvidia/llama-3.3-nemotron-super-49b-v1.5', 'NVIDIA: Llama 3.3 Nemotron Super 49B V1.5', 0),
+        (10, 'qwen/qwen3-coder-30b-a3b-instruct', 'Qwen: Qwen3 Coder 30B A3B Instruct', 0);
     """
     with _connect() as conn:
         conn.executescript(schema)

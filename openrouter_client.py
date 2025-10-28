@@ -23,6 +23,10 @@ def _friendly(status: int) -> str:
         403: "Нет прав доступа к модели.",
         404: "Эндпоинт не найден. Проверьте URL /api/v1/chat/completions.",
         429: "Превышены лимиты бесплатной модели. Попробуйте позднее.",
+        500: "Внутренняя ошибка сервера OpenRouter. Повторите попытку позже.",
+        502: "Проблема с соединением между серверами OpenRouter. Повторите попытку позже.",
+        503: "Сервис OpenRouter временно недоступен. Повторите попытку позже.",
+        504: "Таймаут шлюза OpenRouter. Сервер не ответил вовремя. Повторите попытку позже.",
     }.get(status, "Сервис недоступен. Повторите попытку позже.")
 
 def chat_once(messages: List[Dict], *,
@@ -43,13 +47,18 @@ def chat_once(messages: List[Dict], *,
         "max_tokens": max_tokens,
     }
     t0 = time.perf_counter()
-    r = requests.post(OPENROUTER_API, json=payload, headers=headers, timeout=timeout_s)
-    dt_ms = int((time.perf_counter() - t0) * 1000)
-    if r.status_code // 100 != 2:
-        raise OpenRouterError(r.status_code, _friendly(r.status_code))
     try:
-        data = r.json()
-        text = data["choices"][0]["message"]["content"]
-    except Exception:
-        raise OpenRouterError(500, "Неожиданная структура ответа OpenRouter.")
-    return text, dt_ms
+        r = requests.post(OPENROUTER_API, json=payload, headers=headers, timeout=timeout_s)
+        dt_ms = int((time.perf_counter() - t0) * 1000)
+        if r.status_code // 100 != 2:
+            raise OpenRouterError(r.status_code, _friendly(r.status_code))
+        try:
+            data = r.json()
+            text = data["choices"][0]["message"]["content"]
+        except Exception:
+            raise OpenRouterError(500, "Неожиданная структура ответа OpenRouter.")
+        return text, dt_ms
+    except requests.exceptions.Timeout:
+        raise OpenRouterError(408, f"Таймаут запроса ({timeout_s}с). Проверьте соединение.")
+    except requests.exceptions.ConnectionError:
+        raise OpenRouterError(503, "Ошибка подключения к OpenRouter. Проверьте интернет-соединение.")
